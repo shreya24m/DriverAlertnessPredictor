@@ -168,13 +168,13 @@ export default function Home() {
   const currentAlarmLevel = assessment?.alarmLevel ?? AlarmLevel.OK;
   const { isMuted, toggleMute, testAlarm } = useAlarm(currentAlarmLevel);
 
-  const handleLandmarksUpdate = (
+  const handleLandmarksUpdate = useCallback((
     landmarks: NormalizedLandmark[],
     hasFace: boolean
   ) => {
     setFaceDetected(hasFace);
     setLandmarkCount(landmarks.length);
-  };
+  }, []);
 
   // Handle session finished callback from SessionControlPanel
   const handleSessionFinish = async (session: SessionData) => {

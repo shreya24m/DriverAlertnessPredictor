@@ -2,6 +2,8 @@
 
 This directory documents the interactive live demonstration of the DriveAware AI Driver Vigilance & Drowsiness Detection Platform.
 
+> 🌐 **Live Production App:** [https://drivewareai.vercel.app](https://drivewareai.vercel.app)
+
 ---
 
 ## 🚀 Quick Launch

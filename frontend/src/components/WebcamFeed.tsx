@@ -110,6 +110,19 @@ export function WebcamFeed({
     }
   }, []);
 
+  const callbacksRef = useRef({
+    onLandmarksUpdate,
+    onEyeMetricsUpdate,
+    onYawnMetricsUpdate,
+  });
+  useEffect(() => {
+    callbacksRef.current = {
+      onLandmarksUpdate,
+      onEyeMetricsUpdate,
+      onYawnMetricsUpdate,
+    };
+  }, [onLandmarksUpdate, onEyeMetricsUpdate, onYawnMetricsUpdate]);
+
   // 3. Main real-time detection and rendering loop
   const processFrame = useCallback(() => {
     const video = videoRef.current;
@@ -142,9 +155,7 @@ export function WebcamFeed({
 
         setHasFace(result.hasFace);
         setLandmarksCount(result.landmarks.length);
-        if (onLandmarksUpdate) {
-          onLandmarksUpdate(result.landmarks, result.hasFace);
-        }
+        callbacksRef.current.onLandmarksUpdate?.(result.landmarks, result.hasFace);
 
         // Calculate Eye Metrics (EAR, Blinks, PERCLOS)
         let metrics: EyeMetrics | null = null;
@@ -164,8 +175,8 @@ export function WebcamFeed({
 
         setEyeMetrics(metrics);
         setYawnMetrics(yawn);
-        if (onEyeMetricsUpdate) onEyeMetricsUpdate(metrics);
-        if (onYawnMetricsUpdate) onYawnMetricsUpdate(yawn);
+        callbacksRef.current.onEyeMetricsUpdate?.(metrics);
+        callbacksRef.current.onYawnMetricsUpdate?.(yawn);
 
         // Draw HUD overlay
         drawLandmarkOverlay(canvas, {
@@ -186,8 +197,8 @@ export function WebcamFeed({
       setHasFace(false);
       setEyeMetrics(null);
       setYawnMetrics(null);
-      if (onEyeMetricsUpdate) onEyeMetricsUpdate(null);
-      if (onYawnMetricsUpdate) onYawnMetricsUpdate(null);
+      callbacksRef.current.onEyeMetricsUpdate?.(null);
+      callbacksRef.current.onYawnMetricsUpdate?.(null);
       setFps(0);
     }
 
@@ -198,9 +209,6 @@ export function WebcamFeed({
     isStreaming,
     overlayMode,
     isMirrored,
-    onLandmarksUpdate,
-    onEyeMetricsUpdate,
-    onYawnMetricsUpdate,
     updateFps,
     videoRef,
   ]);

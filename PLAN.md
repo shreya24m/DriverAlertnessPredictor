@@ -109,5 +109,5 @@ driveaware-ai/
 - [x] All 10 features checked off
 - [x] Tests pass in CI
 - [x] Evaluation table in README
-- [x] Live demo URL + demo video
+- [x] Live demo URL (https://drivewareai.vercel.app) + demo guide
 - [x] Limitations and privacy note (video never leaves the browser)

@@ -1,6 +1,7 @@
 # DriveAware AI 🚗⚡
 ### Autonomous Edge Computer-Vision Driver Drowsiness & Vigilance Platform
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-drivewareai.vercel.app-success?logo=vercel&logoColor=white)](https://drivewareai.vercel.app)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js_16_Turbopack-000000.svg?logo=next.js&logoColor=white)](https://nextjs.org)
 [![MediaPipe](https://img.shields.io/badge/Vision-MediaPipe_FaceMesh_WASM-0083B0.svg?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
@@ -8,6 +9,8 @@
 [![Accuracy](https://img.shields.io/badge/Benchmark_F1-0.950-brightgreen.svg)]()
 [![False Alarms](https://img.shields.io/badge/FAR%2Fhr-0.0-blue.svg)]()
 [![Privacy](https://img.shields.io/badge/Privacy-Zero_Video_Transmission-emerald.svg)]()
+
+> 🌐 **Live Production Deployment:** [https://drivewareai.vercel.app](https://drivewareai.vercel.app)
 
 DriveAware AI is an autonomous, full-stack driver vigilance and drowsiness detection platform. Using MediaPipe Face Mesh compiled to WebAssembly running client-side inside the browser, it continuously monitors driver alertness at 30+ FPS, computes Eye Aspect Ratio (EAR), Mouth Aspect Ratio (MAR), rolling 60-second PERCLOS, micro-sleep duration, and composite drowsiness risk, triggering a 4-tier escalating acoustic/visual alarm system with directional hysteresis.
 
