@@ -16,6 +16,11 @@ from app.services.eye_analysis import (
     EyeAnalysisResult,
     EyeAnalyzer,
 )
+from app.services.yawn_detection import (
+    calculate_mar,
+    YawnAnalysisResult,
+    YawnDetector,
+)
 
 __all__ = [
     "LEFT_EYE_LANDMARKS",
@@ -30,4 +35,7 @@ __all__ = [
     "calculate_ear",
     "EyeAnalysisResult",
     "EyeAnalyzer",
+    "calculate_mar",
+    "YawnAnalysisResult",
+    "YawnDetector",
 ]

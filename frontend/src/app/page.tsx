@@ -3,14 +3,17 @@
 import React, { useState } from "react";
 import { WebcamFeed } from "@/components/WebcamFeed";
 import { EyeMetricsCard } from "@/components/EyeMetricsCard";
+import { YawnMetricsCard } from "@/components/YawnMetricsCard";
 import { HealthChecker } from "@/components/HealthChecker";
 import { type NormalizedLandmark } from "@/lib/landmarks";
 import { type EyeMetrics } from "@/lib/eyeAnalysis";
+import { type YawnMetrics } from "@/lib/yawnDetection";
 
 export default function Home() {
   const [faceDetected, setFaceDetected] = useState<boolean>(false);
   const [landmarkCount, setLandmarkCount] = useState<number>(0);
   const [eyeMetrics, setEyeMetrics] = useState<EyeMetrics | null>(null);
+  const [yawnMetrics, setYawnMetrics] = useState<YawnMetrics | null>(null);
 
   const handleLandmarksUpdate = (
     landmarks: NormalizedLandmark[],
@@ -41,7 +44,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-            Milestone M3: Eye Analysis &amp; Blink Telemetry Active
+            Milestone M4: EAR &amp; MAR Yawn Detection Active
           </span>
         </div>
       </header>
@@ -56,23 +59,24 @@ export default function Home() {
             </h2>
             <p className="text-xs text-slate-400">
               Live MediaPipe Face Mesh tracking at 15&ndash;30+ FPS with continuous Eye
-              Aspect Ratio (EAR) overlay.
+              (EAR) and Mouth (MAR) aspect ratio HUD telemetry.
             </p>
           </div>
 
           <WebcamFeed
             onLandmarksUpdate={handleLandmarksUpdate}
             onEyeMetricsUpdate={setEyeMetrics}
+            onYawnMetricsUpdate={setYawnMetrics}
           />
 
           {/* Quick Monitoring Telemetry Cards */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50">
               <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
                 Vision Status
               </span>
               <span
-                className={`text-sm font-bold flex items-center gap-1.5 ${
+                className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${
                   faceDetected ? "text-emerald-400" : "text-amber-400"
                 }`}
               >
@@ -83,10 +87,10 @@ export default function Home() {
 
             <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50">
               <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
-                Live EAR Value
+                Live EAR (Eyes)
               </span>
               <span
-                className={`text-sm font-bold font-mono ${
+                className={`text-xs sm:text-sm font-bold font-mono ${
                   eyeMetrics?.isClosed ? "text-amber-400" : "text-cyan-400"
                 }`}
               >
@@ -96,19 +100,39 @@ export default function Home() {
 
             <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50">
               <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
-                Blinks Counted
+                Live MAR (Mouth)
               </span>
-              <span className="text-sm font-bold text-white font-mono">
-                {eyeMetrics?.blinkCount ?? 0} blinks
+              <span
+                className={`text-xs sm:text-sm font-bold font-mono ${
+                  yawnMetrics?.isYawning
+                    ? "text-rose-400 animate-pulse"
+                    : yawnMetrics?.isMouthOpen
+                    ? "text-amber-400"
+                    : "text-cyan-400"
+                }`}
+              >
+                {yawnMetrics ? yawnMetrics.mar.toFixed(3) : "0.000"}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50">
+              <span className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
+                Events Counted
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-white font-mono">
+                {eyeMetrics?.blinkCount ?? 0}b &bull; {yawnMetrics?.yawnCount ?? 0}y
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Eye Metrics Telemetry Card, Backend Health & Roadmap (5 cols) */}
+        {/* Right Column: Eye Metrics, Yawn Metrics, Backend Health & Roadmap (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           {/* Live Eye Metrics Card */}
           <EyeMetricsCard metrics={eyeMetrics} />
+
+          {/* Live Yawn Metrics Card */}
+          <YawnMetricsCard metrics={yawnMetrics} />
 
           {/* Backend API Health Status */}
           <HealthChecker />
@@ -131,19 +155,21 @@ export default function Home() {
                   Done
                 </span>
               </div>
+              <div className="flex items-center justify-between text-emerald-400 font-medium">
+                <span>✓ M3: Eye-Closure &amp; Blink Analysis (EAR &amp; PERCLOS)</span>
+                <span className="text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded">
+                  Done
+                </span>
+              </div>
               <div className="flex items-center justify-between text-cyan-300 font-semibold bg-cyan-950/30 p-2 rounded-lg border border-cyan-500/20">
-                <span>➔ M3: Eye-Closure &amp; Blink Analysis (EAR &amp; PERCLOS)</span>
+                <span>➔ M4: Yawn Detection (MAR &gt; 0.60 &gt; 1.5s)</span>
                 <span className="text-[11px] bg-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded">
                   Completed
                 </span>
               </div>
               <div className="flex items-center justify-between text-slate-400">
-                <span>○ M4: Yawn Detection (MAR)</span>
-                <span className="text-[11px] text-slate-500">Next Milestone</span>
-              </div>
-              <div className="flex items-center justify-between text-slate-500">
                 <span>○ M5: Risk Score &amp; Escalating Alarms</span>
-                <span>Queued</span>
+                <span className="text-[11px] text-slate-500">Next Milestone</span>
               </div>
               <div className="flex items-center justify-between text-slate-500">
                 <span>○ M6-M12: Dashboard, Auth, Reports, Evaluation</span>
@@ -156,7 +182,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-        <p>DriveAware AI &bull; Milestone M3 Active</p>
+        <p>DriveAware AI &bull; Milestone M4 Active</p>
         <div className="flex items-center gap-4">
           <a
             href="http://localhost:8000/docs"

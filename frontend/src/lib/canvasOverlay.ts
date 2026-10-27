@@ -17,6 +17,7 @@ import {
 } from "./landmarks";
 
 import { type EyeMetrics } from "./eyeAnalysis";
+import { type YawnMetrics } from "./yawnDetection";
 
 export type OverlayMode = "full" | "features" | "off";
 
@@ -26,6 +27,7 @@ export interface DrawOverlayOptions {
   mode: OverlayMode;
   mirrored?: boolean;
   eyeMetrics?: EyeMetrics | null;
+  yawnMetrics?: YawnMetrics | null;
 }
 
 /**
@@ -38,7 +40,14 @@ export function drawLandmarkOverlay(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  const { landmarks, hasFace, mode, mirrored = true, eyeMetrics } = options;
+  const {
+    landmarks,
+    hasFace,
+    mode,
+    mirrored = true,
+    eyeMetrics,
+    yawnMetrics,
+  } = options;
   const width = canvas.width;
   const height = canvas.height;
 
@@ -116,13 +125,25 @@ export function drawLandmarkOverlay(
     }
   }
 
-  // 4. Draw Lips / Mouth Contours
-  drawContour(ctx, landmarks, LIPS_OUTER_CONTOUR, "rgba(245, 158, 11, 0.75)", 1.6, toScreen);
-  drawContour(ctx, landmarks, LIPS_INNER_CONTOUR, "rgba(251, 191, 36, 0.85)", 1.2, toScreen);
+  // 4. Draw Lips / Mouth Contours with Yawn State
+  const isYawning = yawnMetrics?.isYawning ?? false;
+  const isMouthOpen = yawnMetrics?.isMouthOpen ?? false;
+  const lipsColor = isYawning
+    ? "#f43f5e"
+    : isMouthOpen
+    ? "#fbbf24"
+    : "rgba(245, 158, 11, 0.75)";
+  const lipsLineWidth = isYawning ? 2.6 : isMouthOpen ? 2.0 : 1.6;
 
-  // 5. Draw In-Feed Live EAR HUD Badge
+  drawContour(ctx, landmarks, LIPS_OUTER_CONTOUR, lipsColor, lipsLineWidth, toScreen);
+  drawContour(ctx, landmarks, LIPS_INNER_CONTOUR, isYawning ? "#fb7185" : "rgba(251, 191, 36, 0.85)", isYawning ? 1.8 : 1.2, toScreen);
+
+  // 5. Draw In-Feed Live EAR & MAR HUD Badges
   if (eyeMetrics) {
     drawEyeHud(ctx, eyeMetrics, width);
+  }
+  if (yawnMetrics) {
+    drawYawnHud(ctx, yawnMetrics, width);
   }
 }
 
@@ -192,6 +213,80 @@ function drawEyeHud(
     ctx.font = "9px monospace";
     ctx.fillStyle = "#fca5a5";
     ctx.fillText(`${metrics.closureDurationSec.toFixed(1)}s`, hudX + hudWidth - 10, hudY + 36);
+  }
+  ctx.restore();
+}
+
+/**
+ * Render HUD badge with live MAR value and yawn status.
+ */
+function drawYawnHud(
+  ctx: CanvasRenderingContext2D,
+  metrics: YawnMetrics,
+  canvasWidth: number
+): void {
+  ctx.save();
+  const hudX = 168;
+  const hudY = 14;
+  const hudWidth = 145;
+  const hudHeight = 44;
+  const r = 8;
+
+  // Background box
+  ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+  ctx.beginPath();
+  ctx.moveTo(hudX + r, hudY);
+  ctx.lineTo(hudX + hudWidth - r, hudY);
+  ctx.quadraticCurveTo(hudX + hudWidth, hudY, hudX + hudWidth, hudY + r);
+  ctx.lineTo(hudX + hudWidth, hudY + hudHeight - r);
+  ctx.quadraticCurveTo(hudX + hudWidth, hudY + hudHeight, hudX + hudWidth - r, hudY + hudHeight);
+  ctx.lineTo(hudX + r, hudY + hudHeight);
+  ctx.quadraticCurveTo(hudX, hudY + hudHeight, hudX, hudY + hudHeight - r);
+  ctx.lineTo(hudX, hudY + r);
+  ctx.quadraticCurveTo(hudX, hudY, hudX + r, hudY);
+  ctx.fill();
+
+  ctx.strokeStyle = metrics.isYawning
+    ? "#f43f5e"
+    : metrics.isMouthOpen
+    ? "#fbbf24"
+    : "rgba(245, 158, 11, 0.4)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Text
+  ctx.font = "bold 11px monospace";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("LIVE MAR", hudX + 10, hudY + 16);
+
+  ctx.font = "bold 15px monospace";
+  ctx.fillStyle = metrics.isYawning
+    ? "#fb7185"
+    : metrics.isMouthOpen
+    ? "#fcd34d"
+    : "#38bdf8";
+  ctx.fillText(metrics.mar.toFixed(3), hudX + 10, hudY + 34);
+
+  // Status Pill
+  const statusText = metrics.isYawning
+    ? "YAWNING"
+    : metrics.isMouthOpen
+    ? "OPEN"
+    : "CLOSED";
+  const statusColor = metrics.isYawning
+    ? "#f43f5e"
+    : metrics.isMouthOpen
+    ? "#fbbf24"
+    : "#94a3b8";
+
+  ctx.font = "bold 10px sans-serif";
+  ctx.fillStyle = statusColor;
+  ctx.textAlign = "right";
+  ctx.fillText(statusText, hudX + hudWidth - 10, hudY + 24);
+  if (metrics.isMouthOpen && metrics.openDurationSec > 0) {
+    ctx.font = "9px monospace";
+    ctx.fillStyle = metrics.isYawning ? "#fda4af" : "#fef08a";
+    ctx.fillText(`${metrics.openDurationSec.toFixed(1)}s`, hudX + hudWidth - 10, hudY + 36);
   }
   ctx.restore();
 }

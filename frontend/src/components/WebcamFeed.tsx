@@ -7,16 +7,19 @@ import { drawLandmarkOverlay, type OverlayMode } from "@/lib/canvasOverlay";
 import { type NormalizedLandmark } from "@/lib/landmarks";
 import { type FaceLandmarker } from "@mediapipe/tasks-vision";
 import { EyeTracker, type EyeMetrics } from "@/lib/eyeAnalysis";
+import { YawnTracker, type YawnMetrics } from "@/lib/yawnDetection";
 
 export interface WebcamFeedProps {
   onLandmarksUpdate?: (landmarks: NormalizedLandmark[], hasFace: boolean) => void;
   onEyeMetricsUpdate?: (metrics: EyeMetrics | null) => void;
+  onYawnMetricsUpdate?: (metrics: YawnMetrics | null) => void;
   className?: string;
 }
 
 export function WebcamFeed({
   onLandmarksUpdate,
   onEyeMetricsUpdate,
+  onYawnMetricsUpdate,
   className = "",
 }: WebcamFeedProps) {
   const {
@@ -35,6 +38,7 @@ export function WebcamFeed({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
   const eyeTrackerRef = useRef<EyeTracker>(new EyeTracker());
+  const yawnTrackerRef = useRef<YawnTracker>(new YawnTracker());
   const animationFrameIdRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef<number>(-1);
 
@@ -48,6 +52,7 @@ export function WebcamFeed({
   const [hasFace, setHasFace] = useState<boolean>(false);
   const [landmarksCount, setLandmarksCount] = useState<number>(0);
   const [eyeMetrics, setEyeMetrics] = useState<EyeMetrics | null>(null);
+  const [yawnMetrics, setYawnMetrics] = useState<YawnMetrics | null>(null);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("full");
   const [isMirrored, setIsMirrored] = useState<boolean>(true);
 
@@ -143,16 +148,24 @@ export function WebcamFeed({
 
         // Calculate Eye Metrics (EAR, Blinks, PERCLOS)
         let metrics: EyeMetrics | null = null;
+        let yawn: YawnMetrics | null = null;
+
         if (result.hasFace && result.landmarks.length >= 468) {
+          const timestampSec = now / 1000.0;
           metrics = eyeTrackerRef.current.processFrame(
             result.landmarks,
-            now / 1000.0
+            timestampSec
+          );
+          yawn = yawnTrackerRef.current.processFrame(
+            result.landmarks,
+            timestampSec
           );
         }
+
         setEyeMetrics(metrics);
-        if (onEyeMetricsUpdate) {
-          onEyeMetricsUpdate(metrics);
-        }
+        setYawnMetrics(yawn);
+        if (onEyeMetricsUpdate) onEyeMetricsUpdate(metrics);
+        if (onYawnMetricsUpdate) onYawnMetricsUpdate(yawn);
 
         // Draw HUD overlay
         drawLandmarkOverlay(canvas, {
@@ -161,6 +174,7 @@ export function WebcamFeed({
           mode: overlayMode,
           mirrored: isMirrored,
           eyeMetrics: metrics,
+          yawnMetrics: yawn,
         });
 
         updateFps(now);
@@ -171,7 +185,9 @@ export function WebcamFeed({
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       setHasFace(false);
       setEyeMetrics(null);
+      setYawnMetrics(null);
       if (onEyeMetricsUpdate) onEyeMetricsUpdate(null);
+      if (onYawnMetricsUpdate) onYawnMetricsUpdate(null);
       setFps(0);
     }
 
@@ -184,6 +200,7 @@ export function WebcamFeed({
     isMirrored,
     onLandmarksUpdate,
     onEyeMetricsUpdate,
+    onYawnMetricsUpdate,
     updateFps,
     videoRef,
   ]);
