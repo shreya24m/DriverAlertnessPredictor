@@ -11,6 +11,11 @@ from app.services.face_landmarks import (
     validate_landmarks,
     generate_synthetic_landmarks,
 )
+from app.services.eye_analysis import (
+    calculate_ear,
+    EyeAnalysisResult,
+    EyeAnalyzer,
+)
 
 __all__ = [
     "LEFT_EYE_LANDMARKS",
@@ -22,4 +27,7 @@ __all__ = [
     "FaceLandmarks",
     "validate_landmarks",
     "generate_synthetic_landmarks",
+    "calculate_ear",
+    "EyeAnalysisResult",
+    "EyeAnalyzer",
 ]

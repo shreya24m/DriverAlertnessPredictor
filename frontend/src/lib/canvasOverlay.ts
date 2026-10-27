@@ -16,6 +16,8 @@ import {
   MESH_TESSELLATION_KEY_PAIRS,
 } from "./landmarks";
 
+import { type EyeMetrics } from "./eyeAnalysis";
+
 export type OverlayMode = "full" | "features" | "off";
 
 export interface DrawOverlayOptions {
@@ -23,6 +25,7 @@ export interface DrawOverlayOptions {
   hasFace: boolean;
   mode: OverlayMode;
   mirrored?: boolean;
+  eyeMetrics?: EyeMetrics | null;
 }
 
 /**
@@ -35,7 +38,7 @@ export function drawLandmarkOverlay(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  const { landmarks, hasFace, mode, mirrored = true } = options;
+  const { landmarks, hasFace, mode, mirrored = true, eyeMetrics } = options;
   const width = canvas.width;
   const height = canvas.height;
 
@@ -79,32 +82,118 @@ export function drawLandmarkOverlay(
   }
 
   // 2. Draw Eyes (Contours and EAR Keypoints)
-  // Left Eye Contour
-  drawContour(ctx, landmarks, LEFT_EYE_CONTOUR, "#38bdf8", 1.8, toScreen);
-  // Right Eye Contour
-  drawContour(ctx, landmarks, RIGHT_EYE_CONTOUR, "#38bdf8", 1.8, toScreen);
+  const isEyeClosed = eyeMetrics?.isClosed ?? false;
+  const isDrowsy = eyeMetrics?.isDrowsyClosure ?? false;
+  const eyeColor = isDrowsy
+    ? "#ef4444"
+    : isEyeClosed
+    ? "#f59e0b"
+    : "#38bdf8";
 
-  // Key EAR Points on Eyes (glowing emerald dots)
+  // Left Eye Contour
+  drawContour(ctx, landmarks, LEFT_EYE_CONTOUR, eyeColor, isEyeClosed ? 2.5 : 1.8, toScreen);
+  // Right Eye Contour
+  drawContour(ctx, landmarks, RIGHT_EYE_CONTOUR, eyeColor, isEyeClosed ? 2.5 : 1.8, toScreen);
+
+  // Key EAR Points on Eyes
+  const earDotColor = isEyeClosed ? "#ef4444" : "#34d399";
   for (const idx of [...LEFT_EYE_EAR_INDICES, ...RIGHT_EYE_EAR_INDICES]) {
     if (landmarks[idx]) {
       const [x, y] = toScreen(landmarks[idx]);
-      drawPoint(ctx, x, y, 2.5, "#34d399", "#059669");
+      drawPoint(ctx, x, y, 2.5, earDotColor);
     }
   }
 
   // 3. Draw Irises
-  if (landmarks[LEFT_IRIS_CENTER]) {
-    const [lx, ly] = toScreen(landmarks[LEFT_IRIS_CENTER]);
-    drawPoint(ctx, lx, ly, 3.5, "#a855f7", "#7c3aed");
-  }
-  if (landmarks[RIGHT_IRIS_CENTER]) {
-    const [rx, ry] = toScreen(landmarks[RIGHT_IRIS_CENTER]);
-    drawPoint(ctx, rx, ry, 3.5, "#a855f7", "#7c3aed");
+  if (!isEyeClosed) {
+    if (landmarks[LEFT_IRIS_CENTER]) {
+      const [lx, ly] = toScreen(landmarks[LEFT_IRIS_CENTER]);
+      drawPoint(ctx, lx, ly, 3.5, "#a855f7", "#7c3aed");
+    }
+    if (landmarks[RIGHT_IRIS_CENTER]) {
+      const [rx, ry] = toScreen(landmarks[RIGHT_IRIS_CENTER]);
+      drawPoint(ctx, rx, ry, 3.5, "#a855f7", "#7c3aed");
+    }
   }
 
   // 4. Draw Lips / Mouth Contours
   drawContour(ctx, landmarks, LIPS_OUTER_CONTOUR, "rgba(245, 158, 11, 0.75)", 1.6, toScreen);
   drawContour(ctx, landmarks, LIPS_INNER_CONTOUR, "rgba(251, 191, 36, 0.85)", 1.2, toScreen);
+
+  // 5. Draw In-Feed Live EAR HUD Badge
+  if (eyeMetrics) {
+    drawEyeHud(ctx, eyeMetrics, width);
+  }
+}
+
+/**
+ * Render sleek semi-transparent HUD badge with live EAR value and eye status.
+ */
+function drawEyeHud(
+  ctx: CanvasRenderingContext2D,
+  metrics: EyeMetrics,
+  canvasWidth: number
+): void {
+  ctx.save();
+  const hudX = 14;
+  const hudY = 14;
+  const hudWidth = 145;
+  const hudHeight = 44;
+  const r = 8;
+
+  // Background box
+  ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+  ctx.beginPath();
+  ctx.moveTo(hudX + r, hudY);
+  ctx.lineTo(hudX + hudWidth - r, hudY);
+  ctx.quadraticCurveTo(hudX + hudWidth, hudY, hudX + hudWidth, hudY + r);
+  ctx.lineTo(hudX + hudWidth, hudY + hudHeight - r);
+  ctx.quadraticCurveTo(hudX + hudWidth, hudY + hudHeight, hudX + hudWidth - r, hudY + hudHeight);
+  ctx.lineTo(hudX + r, hudY + hudHeight);
+  ctx.quadraticCurveTo(hudX, hudY + hudHeight, hudX, hudY + hudHeight - r);
+  ctx.lineTo(hudX, hudY + r);
+  ctx.quadraticCurveTo(hudX, hudY, hudX + r, hudY);
+  ctx.fill();
+
+  ctx.strokeStyle = metrics.isDrowsyClosure
+    ? "#ef4444"
+    : metrics.isClosed
+    ? "#f59e0b"
+    : "rgba(56, 189, 248, 0.4)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Text
+  ctx.font = "bold 11px monospace";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("LIVE EAR", hudX + 10, hudY + 16);
+
+  ctx.font = "bold 15px monospace";
+  ctx.fillStyle = metrics.isClosed ? "#f87171" : "#38bdf8";
+  ctx.fillText(metrics.avgEar.toFixed(3), hudX + 10, hudY + 34);
+
+  // Status Pill
+  const statusText = metrics.isDrowsyClosure
+    ? "DROWSY"
+    : metrics.isClosed
+    ? "CLOSED"
+    : "OPEN";
+  const statusColor = metrics.isDrowsyClosure
+    ? "#ef4444"
+    : metrics.isClosed
+    ? "#f59e0b"
+    : "#34d399";
+
+  ctx.font = "bold 10px sans-serif";
+  ctx.fillStyle = statusColor;
+  ctx.textAlign = "right";
+  ctx.fillText(statusText, hudX + hudWidth - 10, hudY + 24);
+  if (metrics.isClosed && metrics.closureDurationSec > 0) {
+    ctx.font = "9px monospace";
+    ctx.fillStyle = "#fca5a5";
+    ctx.fillText(`${metrics.closureDurationSec.toFixed(1)}s`, hudX + hudWidth - 10, hudY + 36);
+  }
+  ctx.restore();
 }
 
 /**

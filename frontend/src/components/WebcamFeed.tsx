@@ -6,13 +6,19 @@ import { getFaceLandmarker, detectLandmarksForVideo } from "@/lib/faceLandmarker
 import { drawLandmarkOverlay, type OverlayMode } from "@/lib/canvasOverlay";
 import { type NormalizedLandmark } from "@/lib/landmarks";
 import { type FaceLandmarker } from "@mediapipe/tasks-vision";
+import { EyeTracker, type EyeMetrics } from "@/lib/eyeAnalysis";
 
 export interface WebcamFeedProps {
   onLandmarksUpdate?: (landmarks: NormalizedLandmark[], hasFace: boolean) => void;
+  onEyeMetricsUpdate?: (metrics: EyeMetrics | null) => void;
   className?: string;
 }
 
-export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProps) {
+export function WebcamFeed({
+  onLandmarksUpdate,
+  onEyeMetricsUpdate,
+  className = "",
+}: WebcamFeedProps) {
   const {
     videoRef,
     isStreaming,
@@ -28,6 +34,7 @@ export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProp
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
+  const eyeTrackerRef = useRef<EyeTracker>(new EyeTracker());
   const animationFrameIdRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef<number>(-1);
 
@@ -40,6 +47,7 @@ export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProp
   const [modelError, setModelError] = useState<string | null>(null);
   const [hasFace, setHasFace] = useState<boolean>(false);
   const [landmarksCount, setLandmarksCount] = useState<number>(0);
+  const [eyeMetrics, setEyeMetrics] = useState<EyeMetrics | null>(null);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("full");
   const [isMirrored, setIsMirrored] = useState<boolean>(true);
 
@@ -133,12 +141,26 @@ export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProp
           onLandmarksUpdate(result.landmarks, result.hasFace);
         }
 
+        // Calculate Eye Metrics (EAR, Blinks, PERCLOS)
+        let metrics: EyeMetrics | null = null;
+        if (result.hasFace && result.landmarks.length >= 468) {
+          metrics = eyeTrackerRef.current.processFrame(
+            result.landmarks,
+            now / 1000.0
+          );
+        }
+        setEyeMetrics(metrics);
+        if (onEyeMetricsUpdate) {
+          onEyeMetricsUpdate(metrics);
+        }
+
         // Draw HUD overlay
         drawLandmarkOverlay(canvas, {
           landmarks: result.landmarks,
           hasFace: result.hasFace,
           mode: overlayMode,
           mirrored: isMirrored,
+          eyeMetrics: metrics,
         });
 
         updateFps(now);
@@ -148,13 +170,23 @@ export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProp
       const ctx = canvas.getContext("2d");
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       setHasFace(false);
+      setEyeMetrics(null);
+      if (onEyeMetricsUpdate) onEyeMetricsUpdate(null);
       setFps(0);
     }
 
     if (isStreaming) {
       animationFrameIdRef.current = requestAnimationFrame(processFrame);
     }
-  }, [isStreaming, overlayMode, isMirrored, onLandmarksUpdate, updateFps, videoRef]);
+  }, [
+    isStreaming,
+    overlayMode,
+    isMirrored,
+    onLandmarksUpdate,
+    onEyeMetricsUpdate,
+    updateFps,
+    videoRef,
+  ]);
 
   // 4. Start / Stop loop according to streaming state
   useEffect(() => {
@@ -360,6 +392,17 @@ export function WebcamFeed({ onLandmarksUpdate, className = "" }: WebcamFeedProp
           >
             🪞 {isMirrored ? "Mirrored" : "Normal"}
           </button>
+
+          {/* Recalibrate button */}
+          {isStreaming && (
+            <button
+              onClick={() => eyeTrackerRef.current.recalibrate()}
+              title="Reset baseline EAR calibration"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:border-slate-700 transition"
+            >
+              🔄 Recalibrate
+            </button>
+          )}
         </div>
 
         {/* Overlay Mode Selector */}
