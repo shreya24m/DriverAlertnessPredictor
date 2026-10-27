@@ -21,6 +21,12 @@ from app.services.yawn_detection import (
     YawnAnalysisResult,
     YawnDetector,
 )
+from app.services.risk_engine import (
+    AlarmLevel,
+    RiskAssessment,
+    compute_composite_risk,
+    RiskEngine,
+)
 
 __all__ = [
     "LEFT_EYE_LANDMARKS",
@@ -38,4 +44,8 @@ __all__ = [
     "calculate_mar",
     "YawnAnalysisResult",
     "YawnDetector",
+    "AlarmLevel",
+    "RiskAssessment",
+    "compute_composite_risk",
+    "RiskEngine",
 ]
