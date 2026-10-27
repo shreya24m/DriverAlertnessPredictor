@@ -5,6 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.db.database import Base, engine
+from app.api import api_router
+
+# Initialize database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -23,6 +28,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount API routers under /api/v1
+app.include_router(api_router)
+
 
 @app.get("/", tags=["Root"])
 def root() -> Dict[str, Any]:
@@ -33,6 +41,7 @@ def root() -> Dict[str, Any]:
         "status": "online",
         "docs": "/docs",
         "health": "/health",
+        "api_v1": settings.API_V1_STR,
     }
 
 

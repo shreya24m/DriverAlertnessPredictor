@@ -106,8 +106,8 @@ driveaware-ai/
 - `docs/architecture.png`, demo video link in `demo/`.
 
 ## Definition of done (whole project)
-- [ ] All 10 features checked off
-- [ ] Tests pass in CI
-- [ ] Evaluation table in README
-- [ ] Live demo URL + demo video
-- [ ] Limitations and privacy note (video never leaves the browser)
+- [x] All 10 features checked off
+- [x] Tests pass in CI
+- [x] Evaluation table in README
+- [x] Live demo URL + demo video
+- [x] Limitations and privacy note (video never leaves the browser)

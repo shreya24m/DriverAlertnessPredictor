@@ -38,11 +38,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment and secrets
+# Environment, secrets, and local databases
 .env
 .env*.local
 *.pem
 *.key
+*.db
+*.sqlite*
 
 # Datasets and large model files
 ml/data/*
